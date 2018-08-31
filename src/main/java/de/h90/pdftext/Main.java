@@ -1,10 +1,11 @@
 package de.h90.pdftext;
 
-import org.apache.pdfbox.cos.COSDocument;
-import org.apache.pdfbox.io.RandomAccessBufferedFileInputStream;
-import org.apache.pdfbox.pdfparser.PDFParser;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.tika.exception.TikaException;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.parser.AutoDetectParser;
+import org.apache.tika.parser.ParseContext;
+import org.apache.tika.sax.BodyContentHandler;
+import org.xml.sax.SAXException;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -18,24 +19,23 @@ public class Main {
         this.arguments = arguments;
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, TikaException, SAXException {
         new Main(Arguments_Parser.create().parseOrExit(args)).run();
     }
 
-    private void run() throws IOException {
+    private void run() throws IOException, TikaException, SAXException {
         System.out.println(getText());
     }
 
 
-    private String getText() throws IOException {
+    private String getText() throws IOException, TikaException, SAXException {
         File file = new File(arguments.file());
         FileInputStream fileInputStream = new FileInputStream(file);
-        PDFParser parser = new PDFParser(new RandomAccessBufferedFileInputStream(fileInputStream));
-        parser.parse();
-        PDFTextStripper pdfStripper = new PDFTextStripper();
-        try (COSDocument cosDoc = parser.getDocument();
-             PDDocument pdDoc = new PDDocument(cosDoc)) {
-            return pdfStripper.getText(pdDoc);
-        }
+        AutoDetectParser parser = new AutoDetectParser();
+        ParseContext parseContext = new ParseContext();
+        BodyContentHandler handler = new BodyContentHandler();
+        Metadata metadata = new Metadata();
+        parser.parse(fileInputStream, handler, metadata, parseContext);
+        return handler.toString();
     }
 }
